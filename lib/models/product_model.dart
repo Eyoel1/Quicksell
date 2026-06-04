@@ -62,27 +62,87 @@ class ProductModel {
   });
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
-    return ProductModel(
-      id: json['id'] as String,
-      sellerId: json['sellerId'] as String,
-      title: json['title'] as String,
-      description: json['description'] as String,
-      price: (json['price'] as num).toDouble(),
-      category: ProductCategory.values.byName(json['category'] as String),
-      condition: ProductCondition.values.byName(json['condition'] as String),
-      status: ProductStatus.values.byName(json['status'] as String),
-      imageUrls: List<String>.from(json['imageUrls'] as List),
-      location: json['location'] as String,
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'] as String)
-          : null,
-      views: (json['views'] as num?)?.toInt() ?? 0,
-      likes: List<String>.from(json['likes'] as List? ?? []),
-      isFeatured: json['isFeatured'] as bool? ?? false,
-    );
+    try {
+      return ProductModel(
+        id: json['id'] as String? ?? '',
+        sellerId: json['sellerId'] as String? ?? '',
+        title: json['title'] as String? ?? 'Untitled',
+        description: json['description'] as String? ?? '',
+        price: (json['price'] as num?)?.toDouble() ?? 0.0,
+        category: _parseCategory(json['category']),
+        condition: _parseCondition(json['condition']),
+        status: _parseStatus(json['status']),
+        imageUrls: List<String>.from(json['imageUrls'] as List? ?? []),
+        location: json['location'] as String? ?? 'Unknown',
+        latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
+        longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+        createdAt: _parseDateTime(json['createdAt']),
+        updatedAt: json['updatedAt'] != null
+            ? _parseDateTime(json['updatedAt'])
+            : null,
+        views: (json['views'] as num?)?.toInt() ?? 0,
+        likes: List<String>.from(json['likes'] as List? ?? []),
+        isFeatured: json['isFeatured'] as bool? ?? false,
+      );
+    } catch (e) {
+      print('Error parsing product: $e');
+      print('JSON data: $json');
+      rethrow;
+    }
+  }
+
+  static ProductCategory _parseCategory(dynamic value) {
+    try {
+      if (value is String) {
+        return ProductCategory.values.byName(value);
+      }
+      return ProductCategory.other;
+    } catch (e) {
+      return ProductCategory.other;
+    }
+  }
+
+  static ProductCondition _parseCondition(dynamic value) {
+    try {
+      if (value is String) {
+        return ProductCondition.values.byName(value);
+      }
+      return ProductCondition.good;
+    } catch (e) {
+      return ProductCondition.good;
+    }
+  }
+
+  static ProductStatus _parseStatus(dynamic value) {
+    try {
+      if (value is String) {
+        return ProductStatus.values.byName(value);
+      }
+      return ProductStatus.available;
+    } catch (e) {
+      return ProductStatus.available;
+    }
+  }
+
+  static DateTime _parseDateTime(dynamic value) {
+    if (value == null) {
+      return DateTime.now();
+    }
+    if (value is String) {
+      return DateTime.parse(value);
+    }
+    // Handle Firestore Timestamp
+    if (value is Map && value.containsKey('_seconds')) {
+      return DateTime.fromMillisecondsSinceEpoch(
+        (value['_seconds'] as int) * 1000,
+      );
+    }
+    // Handle Firestore Timestamp object
+    try {
+      return (value as dynamic).toDate() as DateTime;
+    } catch (e) {
+      return DateTime.now();
+    }
   }
 
   Map<String, dynamic> toJson() {
