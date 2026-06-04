@@ -1,0 +1,106 @@
+========================================
+  QuickSell APK Installation Guide
+========================================
+
+APK FILE LOCATION:
+  C:\Users\Ethio\OneDrive\Desktop\QuickSell.apk
+  Size: 52.33 MB
+
+========================================
+  HOW TO INSTALL ON YOUR ANDROID PHONE
+========================================
+
+METHOD 1: Transfer via USB Cable
+---------------------------------
+1. Connect your Android phone to your computer using USB cable
+2. On your phone, swipe down and tap "USB for charging" or "USB options"
+3. Select "File Transfer" or "MTP" mode
+4. On your computer, open "This PC" and find your phone
+5. Copy "QuickSell.apk" from Desktop to your phone's "Downloads" folder
+6. On your phone, open "Files" or "My Files" app
+7. Navigate to "Downloads" folder
+8. Tap on "QuickSell.apk"
+9. If prompted, enable "Install from Unknown Sources" or "Allow from this source"
+10. Tap "Install"
+11. Wait for installation to complete
+12. Tap "Open" to launch the app!
+
+METHOD 2: Transfer via Cloud Storage
+-------------------------------------
+1. Upload "QuickSell.apk" to Google Drive, Dropbox, or OneDrive
+2. On your Android phone, open the cloud storage app
+3. Download "QuickSell.apk"
+4. Open the downloaded file
+5. If prompted, enable "Install from Unknown Sources"
+6. Tap "Install"
+7. Tap "Open" to launch the app!
+
+METHOD 3: Transfer via Email
+-----------------------------
+1. Email "QuickSell.apk" to yourself
+2. On your Android phone, open the email
+3. Download the attachment
+4. Open the downloaded APK file
+5. Enable "Install from Unknown Sources" if prompted
+6. Tap "Install"
+7. Tap "Open" to launch the app!
+
+========================================
+  ENABLING "INSTALL FROM UNKNOWN SOURCES"
+========================================
+
+If your phone blocks the installation:
+
+For Android 8.0 and above:
+1. When prompted, tap "Settings"
+2. Enable "Allow from this source"
+3. Go back and tap "Install"
+
+For older Android versions:
+1. Go to Settings > Security
+2. Enable "Unknown sources"
+3. Return and install the APK
+
+========================================
+  FIRST TIME SETUP
+========================================
+
+After installing QuickSell:
+
+1. Open the app
+2. You'll see the Splash Screen
+3. Click "Get Started"
+4. Sign up with your email and create a password
+5. Or login if you already have an account
+
+Note: The app requires internet connection to work
+
+========================================
+  APP FEATURES
+========================================
+
+✅ User Authentication
+✅ Browse Products
+✅ Search Products
+✅ View Product Details
+✅ Share Products
+✅ Create Product Listings
+✅ Upload Product Images
+✅ Real-time Chat with Sellers
+✅ User Profile Management
+✅ Category Filtering
+
+========================================
+  SYSTEM REQUIREMENTS
+========================================
+
+✅ Android 5.0 (API 21) or higher
+✅ At least 100MB free storage
+✅ Internet connection required
+✅ Camera (optional, for uploading photos)
+
+========================================
+
+Enjoy using QuickSell! 🚀
+
+========================================

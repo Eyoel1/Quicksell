@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'firebase_options.dart';
 import 'config/theme/app_theme.dart';
 import 'routes/app_routes.dart';
+import 'services/firebase_auth_service.dart';
+import 'screens/home/home_screen.dart';
+import 'screens/auth/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,44 +26,39 @@ class MyApp extends ConsumerWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
-      home: const SplashScreen(),
+      home: const AuthWrapper(),
       routes: AppRoutes.routes,
       onGenerateRoute: AppRoutes.onGenerateRoute,
     );
   }
 }
 
-class SplashScreen extends StatelessWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.shopping_bag, size: 80, color: Colors.blue),
-            const SizedBox(height: 20),
-            const Text(
-              'QuickSell',
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+    final authService = FirebaseAuthService();
+    
+    return StreamBuilder(
+      stream: authService.authStateChanges,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation(Color(0xFF2563EB)),
+              ),
             ),
-            const SizedBox(height: 10),
-            const Text(
-              'Local Marketplace',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacementNamed(context, '/login');
-              },
-              child: const Text('Get Started'),
-            ),
-          ],
-        ),
-      ),
+          );
+        }
+        
+        if (snapshot.hasData) {
+          return const HomeScreen();
+        }
+        
+        return const LoginScreen();
+      },
     );
   }
 }

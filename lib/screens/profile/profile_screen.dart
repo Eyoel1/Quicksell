@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../routes/app_routes.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/firebase_auth_service.dart';
+import 'my_listings_screen.dart';
+import 'saved_items_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -120,7 +122,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        user.email,
+                        user.email ?? 'No email',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 14,
@@ -162,8 +164,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         icon: Icons.shopping_bag_rounded,
                         title: 'My Listings',
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('My Listings coming soon')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MyListingsScreen(),
+                            ),
                           );
                         },
                       ),
@@ -172,8 +177,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         icon: Icons.favorite_rounded,
                         title: 'Saved Items',
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Saved Items coming soon')),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SavedItemsScreen(),
+                            ),
                           );
                         },
                       ),

@@ -38,8 +38,8 @@ class FirebaseProductService {
     try {
       final snapshot = await _firestore
           .collection('products')
-          .where('status', isEqualTo: 'available')
           .orderBy('createdAt', descending: true)
+          .limit(50)
           .get();
 
       return snapshot.docs
@@ -47,6 +47,7 @@ class FirebaseProductService {
                 'id': doc.id,
                 ...doc.data(),
               }))
+          .where((product) => product.status == ProductStatus.available)
           .toList();
     } catch (e) {
       rethrow;
@@ -79,8 +80,8 @@ class FirebaseProductService {
       final snapshot = await _firestore
           .collection('products')
           .where('category', isEqualTo: category)
-          .where('status', isEqualTo: 'available')
           .orderBy('createdAt', descending: true)
+          .limit(50)
           .get();
 
       return snapshot.docs
@@ -88,6 +89,7 @@ class FirebaseProductService {
                 'id': doc.id,
                 ...doc.data(),
               }))
+          .where((product) => product.status == ProductStatus.available)
           .toList();
     } catch (e) {
       rethrow;

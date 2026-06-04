@@ -19,6 +19,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
   bool _agreeToTerms = false;
+  String _passwordStrength = '';
+  Color _strengthColor = Colors.grey;
 
   @override
   void initState() {
@@ -27,6 +29,49 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     _emailController = TextEditingController();
     _passwordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
+    _passwordController.addListener(_checkPasswordStrength);
+  }
+
+  void _checkPasswordStrength() {
+    final password = _passwordController.text;
+    int strength = 0;
+    
+    if (password.isEmpty) {
+      setState(() {
+        _passwordStrength = '';
+        _strengthColor = Colors.grey;
+      });
+      return;
+    }
+    
+    // Check length
+    if (password.length >= 8) strength++;
+    if (password.length >= 12) strength++;
+    
+    // Check for uppercase
+    if (password.contains(RegExp(r'[A-Z]'))) strength++;
+    
+    // Check for lowercase
+    if (password.contains(RegExp(r'[a-z]'))) strength++;
+    
+    // Check for numbers
+    if (password.contains(RegExp(r'[0-9]'))) strength++;
+    
+    // Check for special characters
+    if (password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) strength++;
+    
+    setState(() {
+      if (strength <= 2) {
+        _passwordStrength = 'Weak';
+        _strengthColor = Colors.red;
+      } else if (strength <= 4) {
+        _passwordStrength = 'Medium';
+        _strengthColor = Colors.orange;
+      } else {
+        _passwordStrength = 'Strong';
+        _strengthColor = Colors.green;
+      }
+    });
   }
 
   @override
@@ -156,6 +201,35 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               ),
               obscureText: _obscurePassword,
             ),
+            if (_passwordStrength.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: LinearProgressIndicator(
+                        value: _passwordStrength == 'Weak' 
+                            ? 0.33 
+                            : _passwordStrength == 'Medium' 
+                                ? 0.66 
+                                : 1.0,
+                        backgroundColor: Colors.grey[200],
+                        valueColor: AlwaysStoppedAnimation(_strengthColor),
+                        minHeight: 4,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      _passwordStrength,
+                      style: TextStyle(
+                        color: _strengthColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 16),
             TextField(
               controller: _confirmPasswordController,
