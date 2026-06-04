@@ -28,12 +28,17 @@ class FirebaseProductService {
     try {
       final doc = await _firestore.collection('products').doc(productId).get();
       if (doc.exists) {
-        return ProductModel.fromJson({
-          'id': doc.id,
-          ...doc.data() as Map<String, dynamic>,
-        });
+        final data = doc.data() as Map<String, dynamic>;
+        // Ensure the document has the correct ID
+        data['id'] = doc.id;
+        return ProductModel.fromJson(data);
       }
     } catch (e) {
+      print('Error getting product: $e');
+      rethrow;
+    }
+    return null;
+  }
       rethrow;
     }
     return null;
@@ -48,10 +53,12 @@ class FirebaseProductService {
           .get();
 
       final products = snapshot.docs
-          .map((doc) => ProductModel.fromJson({
-                'id': doc.id,
-                ...doc.data(),
-              }))
+          .map((doc) {
+            final data = doc.data();
+            // Ensure each document has the correct ID
+            data['id'] = doc.id;
+            return ProductModel.fromJson(data);
+          })
           .where((product) => product.status == ProductStatus.available)
           .toList();
       
@@ -60,6 +67,7 @@ class FirebaseProductService {
       
       return products;
     } catch (e) {
+      print('Error getting all products: $e');
       rethrow;
     }
   }
@@ -73,10 +81,12 @@ class FirebaseProductService {
           .get();
 
       final products = snapshot.docs
-          .map((doc) => ProductModel.fromJson({
-                'id': doc.id,
-                ...doc.data(),
-              }))
+          .map((doc) {
+            final data = doc.data();
+            // Ensure each document has the correct ID
+            data['id'] = doc.id;
+            return ProductModel.fromJson(data);
+          })
           .toList();
       
       // Sort by createdAt in memory
@@ -84,6 +94,7 @@ class FirebaseProductService {
       
       return products;
     } catch (e) {
+      print('Error getting products by seller: $e');
       rethrow;
     }
   }
@@ -97,10 +108,12 @@ class FirebaseProductService {
           .get();
 
       final products = snapshot.docs
-          .map((doc) => ProductModel.fromJson({
-                'id': doc.id,
-                ...doc.data(),
-              }))
+          .map((doc) {
+            final data = doc.data();
+            // Ensure each document has the correct ID
+            data['id'] = doc.id;
+            return ProductModel.fromJson(data);
+          })
           .where((product) => product.status == ProductStatus.available)
           .toList();
       
@@ -109,6 +122,7 @@ class FirebaseProductService {
       
       return products;
     } catch (e) {
+      print('Error getting products by category: $e');
       rethrow;
     }
   }
@@ -122,10 +136,12 @@ class FirebaseProductService {
           .get();
 
       final products = snapshot.docs
-          .map((doc) => ProductModel.fromJson({
-                'id': doc.id,
-                ...doc.data(),
-              }))
+          .map((doc) {
+            final data = doc.data();
+            // Ensure each document has the correct ID
+            data['id'] = doc.id;
+            return ProductModel.fromJson(data);
+          })
           .where((product) => 
               product.status == ProductStatus.available &&
               (product.title.toLowerCase().contains(query.toLowerCase()) ||
@@ -137,6 +153,7 @@ class FirebaseProductService {
       
       return products;
     } catch (e) {
+      print('Error searching products: $e');
       rethrow;
     }
   }
@@ -154,10 +171,12 @@ class FirebaseProductService {
           .get();
 
       final products = snapshot.docs
-          .map((doc) => ProductModel.fromJson({
-                'id': doc.id,
-                ...doc.data(),
-              }))
+          .map((doc) {
+            final data = doc.data();
+            // Ensure each document has the correct ID
+            data['id'] = doc.id;
+            return ProductModel.fromJson(data);
+          })
           .toList();
 
       // Filter by distance
@@ -173,6 +192,7 @@ class FirebaseProductService {
 
       return products;
     } catch (e) {
+      print('Error getting nearby products: $e');
       rethrow;
     }
   }
