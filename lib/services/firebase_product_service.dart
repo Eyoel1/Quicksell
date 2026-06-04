@@ -39,10 +39,6 @@ class FirebaseProductService {
     }
     return null;
   }
-      rethrow;
-    }
-    return null;
-  }
 
   // Get all products
   Future<List<ProductModel>> getAllProducts() async {
