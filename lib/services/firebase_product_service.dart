@@ -8,9 +8,15 @@ class FirebaseProductService {
   // Create a new product
   Future<String> createProduct(ProductModel product) async {
     try {
-      final docRef = await _firestore.collection('products').add(
-            product.toJson(),
-          );
+      // Don't include the ID in the JSON when creating
+      final productJson = product.toJson();
+      productJson.remove('id'); // Remove the empty id field
+      
+      final docRef = await _firestore.collection('products').add(productJson);
+      
+      // Update the document with its own ID
+      await docRef.update({'id': docRef.id});
+      
       return docRef.id;
     } catch (e) {
       rethrow;
