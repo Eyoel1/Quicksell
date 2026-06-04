@@ -38,17 +38,21 @@ class FirebaseProductService {
     try {
       final snapshot = await _firestore
           .collection('products')
-          .orderBy('createdAt', descending: true)
-          .limit(50)
+          .limit(100)
           .get();
 
-      return snapshot.docs
+      final products = snapshot.docs
           .map((doc) => ProductModel.fromJson({
                 'id': doc.id,
                 ...doc.data(),
               }))
           .where((product) => product.status == ProductStatus.available)
           .toList();
+      
+      // Sort by createdAt in memory
+      products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      return products;
     } catch (e) {
       rethrow;
     }
@@ -60,15 +64,19 @@ class FirebaseProductService {
       final snapshot = await _firestore
           .collection('products')
           .where('sellerId', isEqualTo: sellerId)
-          .orderBy('createdAt', descending: true)
           .get();
 
-      return snapshot.docs
+      final products = snapshot.docs
           .map((doc) => ProductModel.fromJson({
                 'id': doc.id,
                 ...doc.data(),
               }))
           .toList();
+      
+      // Sort by createdAt in memory
+      products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      return products;
     } catch (e) {
       rethrow;
     }
@@ -80,17 +88,20 @@ class FirebaseProductService {
       final snapshot = await _firestore
           .collection('products')
           .where('category', isEqualTo: category)
-          .orderBy('createdAt', descending: true)
-          .limit(50)
           .get();
 
-      return snapshot.docs
+      final products = snapshot.docs
           .map((doc) => ProductModel.fromJson({
                 'id': doc.id,
                 ...doc.data(),
               }))
           .where((product) => product.status == ProductStatus.available)
           .toList();
+      
+      // Sort by createdAt in memory
+      products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      return products;
     } catch (e) {
       rethrow;
     }
@@ -99,20 +110,26 @@ class FirebaseProductService {
   // Search products
   Future<List<ProductModel>> searchProducts(String query) async {
     try {
+      // Get all products and filter in memory for simplicity
       final snapshot = await _firestore
           .collection('products')
-          .where('status', isEqualTo: 'available')
-          .orderBy('title')
-          .startAt([query])
-          .endAt(['$query\uf8ff'])
           .get();
 
-      return snapshot.docs
+      final products = snapshot.docs
           .map((doc) => ProductModel.fromJson({
                 'id': doc.id,
                 ...doc.data(),
               }))
+          .where((product) => 
+              product.status == ProductStatus.available &&
+              (product.title.toLowerCase().contains(query.toLowerCase()) ||
+               product.description.toLowerCase().contains(query.toLowerCase())))
           .toList();
+      
+      // Sort by createdAt in memory
+      products.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      return products;
     } catch (e) {
       rethrow;
     }
