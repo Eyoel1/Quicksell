@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../config/theme/app_theme.dart';
+import '../../models/product_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../routes/app_routes.dart';
-import '../../models/product_model.dart';
 
 class MyListingsScreen extends ConsumerWidget {
   const MyListingsScreen({Key? key}) : super(key: key);
@@ -13,25 +14,23 @@ class MyListingsScreen extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        title: const Text(
-          'My Listings',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-          ),
-        ),
+        title: const Text('My Listings'),
+        backgroundColor: AppTheme.surfaceColor,
+        foregroundColor: AppTheme.textPrimaryColor,
         elevation: 0,
-        backgroundColor: const Color(0xFF2563EB),
-        foregroundColor: Colors.white,
       ),
       body: authState.when(
         data: (user) {
           if (user == null) {
-            return const Center(
-              child: Text('Please login to view your listings'),
+            return _buildEmptyState(
+              context,
+              icon: Icons.lock_outline_rounded,
+              title: 'Sign in required',
+              subtitle: 'Please login to view your listings.',
+              actionLabel: 'Sign In',
+              onAction: () => Navigator.pushNamed(context, AppRoutes.login),
             );
           }
 
@@ -40,101 +39,162 @@ class MyListingsScreen extends ConsumerWidget {
           return listingsAsync.when(
             data: (products) {
               if (products.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEFF6FF),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.shopping_bag_outlined,
-                          size: 56,
-                          color: Color(0xFF2563EB),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No listings yet',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: const Color(0xFF374151),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Start selling items today!',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFF6B7280),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pushNamed(context, AppRoutes.createProduct);
-                        },
-                        icon: const Icon(Icons.add),
-                        label: const Text('Create Listing'),
-                      ),
-                    ],
-                  ),
+                return _buildEmptyState(
+                  context,
+                  icon: Icons.storefront_rounded,
+                  title: 'No listings yet',
+                  subtitle:
+                      'Create your first listing and start selling today.',
+                  actionLabel: 'Create Listing',
+                  onAction: () =>
+                      Navigator.pushNamed(context, AppRoutes.createProduct),
                 );
               }
 
               return RefreshIndicator(
+                color: AppTheme.primaryColor,
                 onRefresh: () async {
                   ref.invalidate(productsBySellerProvider(user.uid));
                 },
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    final product = products[index];
-                    return _buildListingCard(context, product);
-                  },
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _buildSummaryHeader(context, products),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                      sliver: SliverList.builder(
+                        itemCount: products.length,
+                        itemBuilder: (context, index) {
+                          final product = products[index];
+                          return _buildListingCard(context, product);
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               );
             },
             loading: () => const Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation(Color(0xFF2563EB)),
+                valueColor: AlwaysStoppedAnimation(AppTheme.primaryColor),
               ),
             ),
-            error: (error, stackTrace) => Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 56,
-                    color: Color(0xFFDC2626),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error loading listings',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    error.toString(),
-                    style: Theme.of(context).textTheme.bodySmall,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
+            error: (error, stackTrace) => _buildErrorState(context, error),
           );
         },
         loading: () => const Center(
           child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation(Color(0xFF2563EB)),
+            valueColor: AlwaysStoppedAnimation(AppTheme.primaryColor),
           ),
         ),
         error: (error, stackTrace) => Center(
-          child: Text('Error: $error'),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text('Error: $error', textAlign: TextAlign.center),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryHeader(
+    BuildContext context,
+    List<ProductModel> products,
+  ) {
+    final active = products
+        .where((product) => product.status == ProductStatus.available)
+        .length;
+    final sold = products
+        .where((product) => product.status == ProductStatus.sold)
+        .length;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: AppTheme.primaryGradient,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryColor.withOpacity(0.22),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.inventory_2_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Your marketplace shelf',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              _buildMetric('${products.length}', 'Total'),
+              _buildMetric('$active', 'Active'),
+              _buildMetric('$sold', 'Sold'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetric(String value, String label) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.14),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.18)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.78),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -142,15 +202,16 @@ class MyListingsScreen extends ConsumerWidget {
 
   Widget _buildListingCard(BuildContext context, ProductModel product) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.borderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -162,94 +223,202 @@ class MyListingsScreen extends ConsumerWidget {
             arguments: product.id,
           );
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Product Image
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: const Color(0xFFF3F4F6),
-                  image: product.imageUrls.isNotEmpty
-                      ? DecorationImage(
-                          image: NetworkImage(product.imageUrls[0]),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  width: 92,
+                  height: 92,
+                  color: AppTheme.inputFillColor,
+                  child: product.imageUrls.isNotEmpty
+                      ? Image.network(
+                          product.imageUrls.first,
                           fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(
+                                Icons.image_not_supported_outlined,
+                                color: AppTheme.textSecondaryColor,
+                              ),
                         )
-                      : null,
+                      : const Icon(
+                          Icons.image_not_supported_outlined,
+                          color: AppTheme.textSecondaryColor,
+                        ),
                 ),
-                child: product.imageUrls.isEmpty
-                    ? const Icon(
-                        Icons.image_not_supported_outlined,
-                        color: Color(0xFFD1D5DB),
-                      )
-                    : null,
               ),
-              const SizedBox(width: 12),
-              // Product Details
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      product.title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF1F2937),
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      product.category.name,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF6B7280),
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            product.title,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppTheme.textPrimaryColor,
+                                ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildStatusChip(product.status),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '\$${product.price.toStringAsFixed(2)}',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: const Color(0xFF2563EB),
-                            fontWeight: FontWeight.w800,
-                          ),
+                        const Icon(
+                          Icons.category_rounded,
+                          size: 15,
+                          color: AppTheme.textSecondaryColor,
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: product.status == ProductStatus.available
-                                ? const Color(0xFFD1FAE5)
-                                : const Color(0xFFFEE2E2),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
+                        const SizedBox(width: 4),
+                        Text(
+                          product.category.name,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(width: 10),
+                        const Icon(
+                          Icons.location_on_rounded,
+                          size: 15,
+                          color: AppTheme.textSecondaryColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
                           child: Text(
-                            product.status.name,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: product.status == ProductStatus.available
-                                  ? const Color(0xFF059669)
-                                  : const Color(0xFFDC2626),
-                            ),
+                            product.location,
+                            style: Theme.of(context).textTheme.bodySmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '\$${product.price.toStringAsFixed(2)}',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppTheme.primaryColor,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ],
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(ProductStatus status) {
+    final isAvailable = status == ProductStatus.available;
+    final color = isAvailable ? AppTheme.accentGreen : AppTheme.errorColor;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        status.name,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String actionLabel,
+    required VoidCallback onAction,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: const BoxDecoration(
+                gradient: AppTheme.aetherGradient,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 58, color: AppTheme.primaryColor),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimaryColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onAction,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(actionLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, Object error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 56,
+              color: AppTheme.errorColor,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Error loading listings',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textPrimaryColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SelectableText(
+              error.toString(),
+              style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

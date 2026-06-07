@@ -4,7 +4,8 @@ import '../models/message_model.dart';
 class FirebaseChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Create or get conversation
+  /// Create or retrieve a conversation between two users.
+  /// Returns the deterministic conversation ID.
   Future<String> getOrCreateConversation(
     String userId1,
     String userId2,
@@ -12,14 +13,12 @@ class FirebaseChatService {
   ) async {
     try {
       final conversationId = _generateConversationId(userId1, userId2);
-
-      final doc = await _firestore
-          .collection('conversations')
-          .doc(conversationId)
-          .get();
-
+      final ref =
+          _firestore.collection('conversations').doc(conversationId);
+      final doc = await ref.get();
       if (!doc.exists) {
-        await _firestore.collection('conversations').doc(conversationId).set({
+        await ref.set({
+          'id': conversationId,
           'userId1': userId1,
           'userId2': userId2,
           'productId': productId,
@@ -29,14 +28,13 @@ class FirebaseChatService {
           'unreadCount': 0,
         });
       }
-
       return conversationId;
     } catch (e) {
       rethrow;
     }
   }
 
-  // Send message
+  /// Send a message and update the conversation's last-message metadata.
   Future<void> sendMessage(MessageModel message) async {
     try {
       await _firestore
@@ -46,7 +44,6 @@ class FirebaseChatService {
           .doc(message.id)
           .set(message.toJson());
 
-      // Update conversation last message
       await _firestore
           .collection('conversations')
           .doc(message.conversationId)
@@ -59,7 +56,7 @@ class FirebaseChatService {
     }
   }
 
-  // Get messages for conversation
+  /// Real-time stream of messages in a conversation (newest first).
   Stream<List<MessageModel>> getMessages(String conversationId) {
     return _firestore
         .collection('conversations')
@@ -67,22 +64,21 @@ class FirebaseChatService {
         .collection('messages')
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) {
-      return snapshot.docs
-          .map((doc) => MessageModel.fromJson({
-                'id': doc.id,
-                ...doc.data(),
-              }))
-          .toList();
-    });
+        .map((snapshot) => snapshot.docs
+            .map((doc) => MessageModel.fromJson({'id': doc.id, ...doc.data()}))
+            .toList());
   }
 
-  // Get conversations for user
+  /// Fix: queries BOTH sides of the conversation (userId1 OR userId2).
+  /// Previously only queried userId1, so received conversations were invisible.
   Stream<List<Map<String, dynamic>>> getUserConversations(String userId) {
+    // cloud_firestore 5.x supports Filter.or for cross-field OR queries
     return _firestore
         .collection('conversations')
-        .where('userId1', isEqualTo: userId)
-        .orderBy('lastMessageTime', descending: true)
+        .where(Filter.or(
+          Filter('userId1', isEqualTo: userId),
+          Filter('userId2', isEqualTo: userId),
+        ))
         .snapshots()
         .asyncMap((snapshot) async {
       final conversations = <Map<String, dynamic>>[];
@@ -92,30 +88,42 @@ class FirebaseChatService {
         final otherUserId =
             data['userId1'] == userId ? data['userId2'] : data['userId1'];
 
-        // Get other user's profile
-        final userDoc =
-            await _firestore.collection('users').doc(otherUserId).get();
+        Map<String, dynamic>? otherUser;
+        try {
+          final userDoc =
+              await _firestore.collection('users').doc(otherUserId).get();
+          otherUser = userDoc.data();
+        } catch (_) {
+          otherUser = {'displayName': 'User'};
+        }
 
         conversations.add({
           'id': doc.id,
           'userId1': data['userId1'],
           'userId2': data['userId2'],
-          'lastMessage': data['lastMessage'],
-          'lastMessageTime': data['lastMessageTime'],
+          'lastMessage': data['lastMessage'] ?? '',
+          'lastMessageTime':
+              data['lastMessageTime'] ?? DateTime.now().toIso8601String(),
           'productId': data['productId'],
-          'otherUser': userDoc.data(),
+          'otherUser': otherUser,
         });
       }
+
+      // Sort by lastMessageTime descending in memory
+      conversations.sort((a, b) {
+        final ta = DateTime.tryParse(a['lastMessageTime'] as String) ??
+            DateTime.now();
+        final tb = DateTime.tryParse(b['lastMessageTime'] as String) ??
+            DateTime.now();
+        return tb.compareTo(ta);
+      });
 
       return conversations;
     });
   }
 
-  // Mark message as read
   Future<void> markMessageAsRead(
-    String conversationId,
-    String messageId,
-  ) async {
+      String conversationId, String messageId) async {
     try {
       await _firestore
           .collection('conversations')
@@ -128,28 +136,25 @@ class FirebaseChatService {
     }
   }
 
-  // Delete conversation
   Future<void> deleteConversation(String conversationId) async {
     try {
-      // Delete all messages in conversation
       final messages = await _firestore
           .collection('conversations')
           .doc(conversationId)
           .collection('messages')
           .get();
-
       for (final doc in messages.docs) {
         await doc.reference.delete();
       }
-
-      // Delete conversation
-      await _firestore.collection('conversations').doc(conversationId).delete();
+      await _firestore
+          .collection('conversations')
+          .doc(conversationId)
+          .delete();
     } catch (e) {
       rethrow;
     }
   }
 
-  // Generate conversation ID
   String _generateConversationId(String userId1, String userId2) {
     final ids = [userId1, userId2]..sort();
     return '${ids[0]}_${ids[1]}';

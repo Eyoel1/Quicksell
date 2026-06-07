@@ -35,9 +35,10 @@ class FirebaseAuthService {
           createdAt: DateTime.now(),
         );
 
-        await _firestore.collection('users').doc(user.uid).set(
-              userModel.toJson(),
-            );
+        await _firestore
+            .collection('users')
+            .doc(user.uid)
+            .set(userModel.toJson());
 
         return userModel;
       }

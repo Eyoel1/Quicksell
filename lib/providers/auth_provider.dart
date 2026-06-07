@@ -18,30 +18,33 @@ final currentUserProvider = FutureProvider<UserModel?>((ref) async {
   return null;
 });
 
-final signUpProvider = FutureProvider.family<UserModel?, Map<String, String>>(
-  (ref, params) async {
-    final authService = ref.watch(authServiceProvider);
-    return await authService.signUp(
-      email: params['email']!,
-      password: params['password']!,
-      displayName: params['displayName']!,
-    );
-  },
-);
+final signUpProvider = FutureProvider.family<UserModel?, Map<String, String>>((
+  ref,
+  params,
+) async {
+  final authService = ref.watch(authServiceProvider);
+  return await authService.signUp(
+    email: params['email']!,
+    password: params['password']!,
+    displayName: params['displayName']!,
+  );
+});
 
-final loginProvider = FutureProvider.family<UserModel?, Map<String, String>>(
-  (ref, params) async {
-    final authService = ref.watch(authServiceProvider);
-    return await authService.login(
-      email: params['email']!,
-      password: params['password']!,
-    );
-  },
-);
+final loginProvider = FutureProvider.family<UserModel?, Map<String, String>>((
+  ref,
+  params,
+) async {
+  final authService = ref.watch(authServiceProvider);
+  return await authService.login(
+    email: params['email']!,
+    password: params['password']!,
+  );
+});
 
-final userProfileProvider = FutureProvider.family<UserModel?, String>(
-  (ref, uid) async {
-    final authService = ref.watch(authServiceProvider);
-    return await authService.getUserProfile(uid);
-  },
-);
+final userProfileProvider = FutureProvider.family<UserModel?, String>((
+  ref,
+  uid,
+) async {
+  final authService = ref.watch(authServiceProvider);
+  return await authService.getUserProfile(uid);
+});

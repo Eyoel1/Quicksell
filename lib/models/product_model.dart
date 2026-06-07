@@ -6,21 +6,13 @@ enum ProductCategory {
   sports,
   toys,
   home,
+  fashion,
   other,
 }
 
-enum ProductCondition {
-  new_,
-  likeNew,
-  good,
-  fair,
-}
+enum ProductCondition { new_, likeNew, good, fair }
 
-enum ProductStatus {
-  available,
-  sold,
-  pending,
-}
+enum ProductStatus { available, sold, pending }
 
 class ProductModel {
   final String id;
@@ -40,6 +32,9 @@ class ProductModel {
   final int views;
   final List<String> likes;
   final bool isFeatured;
+
+  // Convenience getters for compatibility
+  List<String> get images => imageUrls;
 
   ProductModel({
     required this.id,
@@ -64,25 +59,25 @@ class ProductModel {
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     try {
       return ProductModel(
-        id: json['id'] as String? ?? '',
-        sellerId: json['sellerId'] as String? ?? '',
-        title: json['title'] as String? ?? 'Untitled',
-        description: json['description'] as String? ?? '',
-        price: (json['price'] as num?)?.toDouble() ?? 0.0,
+        id: json['id']?.toString() ?? '',
+        sellerId: json['sellerId']?.toString() ?? '',
+        title: json['title']?.toString() ?? 'Untitled',
+        description: json['description']?.toString() ?? '',
+        price: _parseDouble(json['price']),
         category: _parseCategory(json['category']),
         condition: _parseCondition(json['condition']),
         status: _parseStatus(json['status']),
-        imageUrls: List<String>.from(json['imageUrls'] as List? ?? []),
-        location: json['location'] as String? ?? 'Unknown',
-        latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
-        longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+        imageUrls: _parseStringList(json['imageUrls'] ?? json['images']),
+        location: json['location']?.toString() ?? 'Unknown',
+        latitude: _parseDouble(json['latitude']),
+        longitude: _parseDouble(json['longitude']),
         createdAt: _parseDateTime(json['createdAt']),
         updatedAt: json['updatedAt'] != null
             ? _parseDateTime(json['updatedAt'])
             : null,
-        views: (json['views'] as num?)?.toInt() ?? 0,
-        likes: List<String>.from(json['likes'] as List? ?? []),
-        isFeatured: json['isFeatured'] as bool? ?? false,
+        views: _parseInt(json['views']),
+        likes: _parseStringList(json['likes']),
+        isFeatured: _parseBool(json['isFeatured']),
       );
     } catch (e) {
       print('Error parsing product: $e');
@@ -92,57 +87,103 @@ class ProductModel {
   }
 
   static ProductCategory _parseCategory(dynamic value) {
-    try {
-      if (value is String) {
-        return ProductCategory.values.byName(value);
+    final normalized = value?.toString().trim();
+    if (normalized == null || normalized.isEmpty) return ProductCategory.other;
+
+    for (final category in ProductCategory.values) {
+      if (category.name.toLowerCase() == normalized.toLowerCase()) {
+        return category;
       }
-      return ProductCategory.other;
-    } catch (e) {
-      return ProductCategory.other;
     }
+
+    return ProductCategory.other;
   }
 
   static ProductCondition _parseCondition(dynamic value) {
-    try {
-      if (value is String) {
-        return ProductCondition.values.byName(value);
+    final normalized = value?.toString().trim();
+    if (normalized == null || normalized.isEmpty) return ProductCondition.good;
+
+    if (normalized.toLowerCase() == 'new') return ProductCondition.new_;
+
+    for (final condition in ProductCondition.values) {
+      if (condition.name.toLowerCase() == normalized.toLowerCase()) {
+        return condition;
       }
-      return ProductCondition.good;
-    } catch (e) {
-      return ProductCondition.good;
     }
+
+    return ProductCondition.good;
   }
 
   static ProductStatus _parseStatus(dynamic value) {
-    try {
-      if (value is String) {
-        return ProductStatus.values.byName(value);
-      }
-      return ProductStatus.available;
-    } catch (e) {
+    final normalized = value?.toString().trim();
+    if (normalized == null || normalized.isEmpty) {
       return ProductStatus.available;
     }
+
+    for (final status in ProductStatus.values) {
+      if (status.name.toLowerCase() == normalized.toLowerCase()) {
+        return status;
+      }
+    }
+
+    return ProductStatus.available;
+  }
+
+  static double _parseDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0.0;
+  }
+
+  static int _parseInt(dynamic value) {
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static bool _parseBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    return value?.toString().toLowerCase() == 'true';
+  }
+
+  static List<String> _parseStringList(dynamic value) {
+    if (value is List) {
+      return value
+          .where((item) => item != null)
+          .map((item) => item.toString())
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+    return const [];
   }
 
   static DateTime _parseDateTime(dynamic value) {
     if (value == null) {
       return DateTime.now();
     }
-    if (value is String) {
-      return DateTime.parse(value);
+    if (value is DateTime) {
+      return value;
     }
-    // Handle Firestore Timestamp
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+    if (value is num) {
+      return DateTime.fromMillisecondsSinceEpoch(value.toInt());
+    }
+    // Handle Firestore Timestamp JSON shape
     if (value is Map && value.containsKey('_seconds')) {
-      return DateTime.fromMillisecondsSinceEpoch(
-        (value['_seconds'] as int) * 1000,
-      );
+      final seconds = value['_seconds'];
+      if (seconds is num) {
+        return DateTime.fromMillisecondsSinceEpoch(seconds.toInt() * 1000);
+      }
     }
     // Handle Firestore Timestamp object
     try {
-      return (value as dynamic).toDate() as DateTime;
+      final date = (value as dynamic).toDate();
+      if (date is DateTime) return date;
     } catch (e) {
-      return DateTime.now();
+      // Fall back below.
     }
+    return DateTime.now();
   }
 
   Map<String, dynamic> toJson() {
@@ -207,3 +248,6 @@ class ProductModel {
     );
   }
 }
+
+// Type alias for convenience
+typedef Product = ProductModel;
